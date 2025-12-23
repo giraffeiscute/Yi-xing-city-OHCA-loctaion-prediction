@@ -57,6 +57,35 @@
 * **風險地圖**: 專案產出了宜興市全域的 OHCA 預測熱力圖，視覺化展示了高風險區域的分佈。
 * **特徵重要性**: 通過 SHAP 分析發現，特定的商業設施與建築密度對 OHCA 的預測有顯著的正向或負向影響。
 
+###  數據視覺化 (Data Visualization)
+
+<p align="center">
+  <b>宜興市建築分佈圖</b><br>
+  <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/Yixing%20building%20distribution.png" width="50%">
+</p>
+
+<hr>
+
+<p align="center">
+  <b>模型預測結果比較</b>
+</p>
+
+<table style="width: 100%; table-layout: fixed;">
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/MLP%20predict.png" style="width:100%"><br>
+      <b>MLP Prediction</b>
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/SVR%20predict.png" style="width:100%"><br>
+      <b>SVR Prediction</b>
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/XGB%20predict.png" style="width:100%"><br>
+      <b>XGB Prediction</b>
+    </td>
+  </tr>
+</table>
 ---
 
 ## 未來工作 (Future Work)
@@ -122,6 +151,35 @@ Based on the repository's file list, the notebooks are organized as follows:
 * **Risk Mapping**: The project generated heatmaps showing the distribution of predicted OHCA risk across the city, allowing for visual comparison between models.
 * **Feature Importance**: SHAP analysis revealed that specific commercial facilities and building densities have significant impacts on the model's output.
 
+### Data Visualization
+
+<p align="center">
+  <b>Building Distribution Map of Yixing City</b><br>
+  <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/Yixing%20building%20distribution.png" width="50%">
+</p>
+
+<hr>
+
+<p align="center">
+  <b>Comparison of Model Prediction Results</b>
+</p>
+
+<table style="width: 100%; table-layout: fixed;">
+  <tr>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/MLP%20predict.png" style="width:100%"><br>
+      <b>MLP Prediction</b>
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/SVR%20predict.png" style="width:100%"><br>
+      <b>SVR Prediction</b>
+    </td>
+    <td align="center">
+      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/XGB%20predict.png" style="width:100%"><br>
+      <b>XGB Prediction</b>
+    </td>
+  </tr>
+</table>
 ---
 
 ## Future Work
