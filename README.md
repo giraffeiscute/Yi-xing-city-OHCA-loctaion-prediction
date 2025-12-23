@@ -1,4 +1,7 @@
-
+> [!NOTE]
+> **[繁體中文](#繁體中文)** | **[English Version](#english-version)**
+>
+<a name="繁體中文"></a>
 # 宜興市地理特徵預測院外心臟驟停 (OHCA) 分佈研究
 # (Predicting OHCA Distribution Using Only Geographic Features in Yixing City)
 
@@ -61,7 +64,67 @@
 2.  **細粒度數據校準**: 針對「公寓 (Apartment)」類別進行權重校準，以更準確地反映實際的建築分佈與人口密度。
 3.  **效能驗證**: 引入 WorldPop 全球人口數據集，進一步驗證模型在不同人口分佈下的預測準確性。
 
+
+<a name="english-version"></a>
+# Predicting Out-of-Hospital Cardiac Arrest (OHCA) Distribution Using Only Geographic Features in Yixing City
+
+## Project Introduction
+This project explores the feasibility of predicting grid-level Out-of-Hospital Cardiac Arrest (OHCA) risk in Yixing City using only **Geographic Features (GF)**. 
+
+Traditional predictive models often rely heavily on demographic or medical data, which are frequently difficult to acquire. This research leverages more accessible data—OpenStreetMap (OSM) raw data, Points of Interest (POI), and building information—to potentially represent underlying demographic and medical characteristics.
+
 ---
-**研究機構:** 清華大學 (Tsinghua University)  
-**研究員:** Yang Chih Yuan  
-**匯報日期:** 2025.12.07
+
+## Core Methodology
+
+The project is structured into two primary modules:
+
+### 1. Predictor
+This module focuses on predicting grid-level OHCA risk using geographic data.
+* **Preprocessing**: Raw OSM data is processed and aggregated into hexagonal grid-level features.
+* **Normalization**: All input features are normalized using Min-Max scaling to a range of [0, 1].
+* **Machine Learning Models**: Three models are evaluated for their predictive performance:
+    * **XGBoost**: A tree-based gradient boosting model used for capturing non-linear relationships.
+    * **MLP (Multi-Layer Perceptron)**: A neural network architecture used for learning complex feature representations.
+    * **SVR (Support Vector Regression)**: A regression-based machine learning model.
+
+### 2. Interpreter
+This module uses **Explainable AI (XAI)** techniques to quantify the contribution of each geographic feature to the predicted OHCA risk.
+* **SHAP**: Used to provide both global and local feature contribution analysis.
+* **SP-LIME**: Employed for localized interpretation of model predictions.
+
+---
+
+## File Structure and Notebooks
+
+Based on the repository's file list, the notebooks are organized as follows:
+
+### Data Acquisition and Preprocessing
+* **`OSM download.ipynb`**: Framework construction and raw data download from OpenStreetMap.
+* **`tag_transformation.ipynb`**: Data cleaning, tidying, and label transformation.
+* **`tag_site_selection.ipynb` & `Yixing_data_stat.ipynb`**: Logic for site selection and statistical analysis of Yixing City data.
+
+### Model Training and Visualization
+* **`XGB_yixing.ipynb`**: Training, prediction, and reinforced visualization for the XGBoost model.
+* **`NN_yixing.ipynb`**: Construction and heatmap visualization for the Neural Network (MLP) model.
+* **`SVR_yixing.ipynb`**: Training and regression analysis visualization for the SVR model.
+
+### Data Files
+* **`cache/`**: Stores trained models and specific city datasets.
+* **`h3_l7_df_yixing.csv`**: Feature matrix for Yixing City mapped to H3 Level 7 hexagonal grids.
+* **`location_sites.csv` / `mapped_data.csv`**: Processed location information and feature mapping results.
+
+---
+
+## Experimental Results Summary
+
+* **Feature Distribution**: In Yixing City, the most prominent geographic features are Retail, Office, and Restaurant.
+* **Risk Mapping**: The project generated heatmaps showing the distribution of predicted OHCA risk across the city, allowing for visual comparison between models.
+* **Feature Importance**: SHAP analysis revealed that specific commercial facilities and building densities have significant impacts on the model's output.
+
+---
+
+## Future Work
+1. **Functional Zone Identification (PCA)**: Use Principal Component Analysis on building distributions to classify functional zones (e.g., Residential, Commercial) to mitigate distribution shift.
+2. **Fine-grained Data Refinement**: Calibrate the "Apartment" category—which currently represents residential complexes—by applying a multiplier to more accurately reflect building density.
+3. **Validation**: Use the WorldPop Global 2 dataset to validate prediction accuracy against actual population distributions.
