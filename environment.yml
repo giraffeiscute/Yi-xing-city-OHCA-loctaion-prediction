@@ -1,0 +1,25 @@
+name: yixin_env
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - jupyterlab
+  - ipykernel
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - geopandas
+  - shapely
+  - pyproj
+  - rasterio
+  - osmnx
+  - "h3<4"
+  - tqdm
+  - xgboost
+  - shap
+  - pytorch

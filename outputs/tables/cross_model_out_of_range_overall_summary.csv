@@ -1,0 +1,10 @@
+﻿metric,value
+target_grids,516.0
+features_checked,114.0
+grid_feature_cells_checked,58824.0
+grids_with_any_out_of_range_feature,353.0
+pct_grids_with_any_out_of_range_feature,0.6841085271317829
+out_of_range_grid_feature_cells,1863.0
+pct_grid_feature_cells_out_of_range,0.03167074663402693
+features_with_any_out_of_range_grid,39.0
+features_with_zero_source_range,0.0

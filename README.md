@@ -30,24 +30,55 @@
 
 ---
 
+## 執行環境與建議順序
+
+所有 Notebook 均使用 `yixin_env` kernel，並預期從 repository 根目錄啟動 Jupyter：
+
+```bash
+conda env create -f environment.yml
+conda activate yixin_env
+jupyter lab
+```
+
+建議依下列順序執行：
+
+1. `notebooks/01_download_osm.ipynb`（需要重新下載 OSM 資料時）
+2. `notebooks/02_select_poi_sites.ipynb`
+3. `notebooks/03_transform_poi_tags.ipynb`
+4. `notebooks/04_build_h3_features.ipynb`
+5. `notebooks/05_data_summary.ipynb`
+6. `notebooks/06_train_xgboost.ipynb`
+7. `notebooks/07_train_svr.ipynb`
+8. `notebooks/08_train_mlp.ipynb`
+9. `notebooks/09_prepare_population.ipynb`
+10. `notebooks/10_compare_models_and_population.ipynb`
+
+模型與統計 Notebook 使用的 `h3_l7_df_new.csv` 和中間版本 `h3_l7_df_yixing.csv` 位於 `data/processed/`。人口 Notebook 另需本地檔案 `data/raw/Yixing_data/chn_pop_2024_CN_100m_R2025A_v1.tif`。
+
 ## 檔案結構與 Notebook 說明
 
 根據儲存庫內的檔案清單，各程式碼檔案的功能如下：
 
 ### 數據獲取與預處理
-* **`OSM download.ipynb`**: 構建數據框架並從 OSM 下載原始地理數據。
-* **`tag_transformation.ipynb`**: 進行數據清洗、整理與標籤轉換。
-* **`tag_site_selection.ipynb` & `Yixing_data_stat.ipynb`**: 處理站點選擇邏輯與宜興市基礎數據統計。
+* **`notebooks/01_download_osm.ipynb`**: 構建數據框架並從 OSM 下載原始地理數據。
+* **`notebooks/03_transform_poi_tags.ipynb`**: 進行數據清洗、整理與標籤轉換。
+* **`notebooks/02_select_poi_sites.ipynb` & `notebooks/05_data_summary.ipynb`**: 處理站點選擇邏輯與宜興市基礎數據統計。`notebooks/04_build_h3_features.ipynb` 建立 H3 特徵矩陣。
 
 ### 模型訓練與視覺化
-* **`XGB_yixing.ipynb`**: XGBoost 模型的訓練、OHCA 風險預測及預測結果視覺化。
-* **`NN_yixing.ipynb`**: MLP 模型的構建與預測熱力圖強化視覺化。
-* **`SVR_yixing.ipynb`**: SVR 模型訓練與回歸分析視覺化。
+* **`notebooks/06_train_xgboost.ipynb`**: XGBoost 模型的訓練、OHCA 風險預測及預測結果視覺化。
+* **`notebooks/08_train_mlp.ipynb`**: MLP 模型的構建與預測熱力圖強化視覺化。
+* **`notebooks/07_train_svr.ipynb`**: SVR 模型訓練與回歸分析視覺化。`notebooks/08_train_mlp.ipynb` 內的跨模型比較會使用其輸出。
+
+### 人口與模型比較
+* **`notebooks/09_prepare_population.ipynb`**: 將人口 raster 彙整到 H3 網格。
+* **`notebooks/10_compare_models_and_population.ipynb`**: 比較模型預測與人口資料。
+* **`archive/virginia_beach_shap.ipynb`**: 封存的 Virginia Beach SHAP 分析，不屬於主要執行流程。
 
 ### 數據文件
-* **`cache/`**: 存放訓練好的模型與城市基礎數據。
-* **`h3_l7_df_yixing.csv`**: 宜興市 H3 Level 7 六邊形網格的特徵矩陣。
-* **`location_sites.csv` / `mapped_data.csv`**: 處理後的地理位置資訊與特徵映射表。
+* **`data/raw/` / `data/interim/`**: 本地原始資料與中間資料；兩者不納入 Git。
+* **`data/processed/h3_l7_df_new.csv` / `data/processed/h3_l7_df_yixing.csv`**: 模型訓練來源與宜興市 H3 Level 7 中間特徵矩陣。
+* **`data/processed/h3_l7_df_yixing_full.csv`**: 模型使用的宜興市完整特徵矩陣。
+* **`data/interim/location_sites.csv` / `data/interim/mapped_data.csv`**: 處理後的地理位置資訊與特徵映射表。
 
 ---
 
@@ -61,7 +92,7 @@
 
 <p align="center">
   <b>宜興市建築分佈圖</b><br>
-  <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/Yixing%20building%20distribution.png" width="50%">
+  <img src="outputs/figures/Yixing%20building%20distribution.png" width="50%">
 </p>
 
 <hr>
@@ -73,15 +104,15 @@
 <table style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/MLP%20predict.png" style="width:100%"><br>
+      <img src="outputs/figures/MLP%20predict.png" style="width:100%"><br>
       <b>MLP Prediction</b>
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/SVR%20predict.png" style="width:100%"><br>
+      <img src="outputs/figures/SVR%20predict.png" style="width:100%"><br>
       <b>SVR Prediction</b>
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/XGB%20predict.png" style="width:100%"><br>
+      <img src="outputs/figures/XGB%20predict.png" style="width:100%"><br>
       <b>XGB Prediction</b>
     </td>
   </tr>
@@ -124,24 +155,55 @@ This module uses **Explainable AI (XAI)** techniques to quantify the contributio
 
 ---
 
+## Environment and Recommended Execution Order
+
+All notebooks use the `yixin_env` kernel and expect Jupyter to be started from the repository root:
+
+```bash
+conda env create -f environment.yml
+conda activate yixin_env
+jupyter lab
+```
+
+Recommended execution order:
+
+1. `notebooks/01_download_osm.ipynb` (when the OSM data must be downloaded again)
+2. `notebooks/02_select_poi_sites.ipynb`
+3. `notebooks/03_transform_poi_tags.ipynb`
+4. `notebooks/04_build_h3_features.ipynb`
+5. `notebooks/05_data_summary.ipynb`
+6. `notebooks/06_train_xgboost.ipynb`
+7. `notebooks/07_train_svr.ipynb`
+8. `notebooks/08_train_mlp.ipynb`
+9. `notebooks/09_prepare_population.ipynb`
+10. `notebooks/10_compare_models_and_population.ipynb`
+
+The model and statistics notebooks read `h3_l7_df_new.csv` and the intermediate `h3_l7_df_yixing.csv` from `data/processed/`. The population notebook additionally requires the local file `data/raw/Yixing_data/chn_pop_2024_CN_100m_R2025A_v1.tif`.
+
 ## File Structure and Notebooks
 
 Based on the repository's file list, the notebooks are organized as follows:
 
 ### Data Acquisition and Preprocessing
-* **`OSM download.ipynb`**: Framework construction and raw data download from OpenStreetMap.
-* **`tag_transformation.ipynb`**: Data cleaning, tidying, and label transformation.
-* **`tag_site_selection.ipynb` & `Yixing_data_stat.ipynb`**: Logic for site selection and statistical analysis of Yixing City data.
+* **`notebooks/01_download_osm.ipynb`**: Framework construction and raw data download from OpenStreetMap.
+* **`notebooks/03_transform_poi_tags.ipynb`**: Data cleaning, tidying, and label transformation.
+* **`notebooks/02_select_poi_sites.ipynb` & `notebooks/05_data_summary.ipynb`**: Site selection and Yixing statistics. `notebooks/04_build_h3_features.ipynb` builds the H3 feature matrix.
 
 ### Model Training and Visualization
-* **`XGB_yixing.ipynb`**: Training, prediction, and reinforced visualization for the XGBoost model.
-* **`NN_yixing.ipynb`**: Construction and heatmap visualization for the Neural Network (MLP) model.
-* **`SVR_yixing.ipynb`**: Training and regression analysis visualization for the SVR model.
+* **`notebooks/06_train_xgboost.ipynb`**: Training, prediction, and reinforced visualization for the XGBoost model.
+* **`notebooks/08_train_mlp.ipynb`**: Construction and heatmap visualization for the Neural Network (MLP) model.
+* **`notebooks/07_train_svr.ipynb`**: SVR training and regression visualization. Its output is used by the cross-model cells in `notebooks/08_train_mlp.ipynb`.
+
+### Population and Model Comparison
+* **`notebooks/09_prepare_population.ipynb`**: Aggregates the population raster to H3 grids.
+* **`notebooks/10_compare_models_and_population.ipynb`**: Compares model predictions with population data.
+* **`archive/virginia_beach_shap.ipynb`**: Archived Virginia Beach SHAP analysis; it is not part of the main workflow.
 
 ### Data Files
-* **`cache/`**: Stores trained models and specific city datasets.
-* **`h3_l7_df_yixing.csv`**: Feature matrix for Yixing City mapped to H3 Level 7 hexagonal grids.
-* **`location_sites.csv` / `mapped_data.csv`**: Processed location information and feature mapping results.
+* **`data/raw/` / `data/interim/`**: Local raw and intermediate data; both are excluded from Git.
+* **`data/processed/h3_l7_df_new.csv` / `data/processed/h3_l7_df_yixing.csv`**: Source-model and intermediate Yixing H3 Level 7 feature matrices.
+* **`data/processed/h3_l7_df_yixing_full.csv`**: Complete Yixing feature matrix used by the models.
+* **`data/interim/location_sites.csv` / `data/interim/mapped_data.csv`**: Processed location information and feature mapping results.
 
 ---
 
@@ -155,7 +217,7 @@ Based on the repository's file list, the notebooks are organized as follows:
 
 <p align="center">
   <b>Building Distribution Map of Yixing City</b><br>
-  <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/Yixing%20building%20distribution.png" width="50%">
+  <img src="outputs/figures/Yixing%20building%20distribution.png" width="50%">
 </p>
 
 <hr>
@@ -167,15 +229,15 @@ Based on the repository's file list, the notebooks are organized as follows:
 <table style="width: 100%; table-layout: fixed;">
   <tr>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/MLP%20predict.png" style="width:100%"><br>
+      <img src="outputs/figures/MLP%20predict.png" style="width:100%"><br>
       <b>MLP Prediction</b>
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/SVR%20predict.png" style="width:100%"><br>
+      <img src="outputs/figures/SVR%20predict.png" style="width:100%"><br>
       <b>SVR Prediction</b>
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/giraffeiscute/Yi-xing-city-OHCA-loctaion-prediction/main/Yixing%20graph/XGB%20predict.png" style="width:100%"><br>
+      <img src="outputs/figures/XGB%20predict.png" style="width:100%"><br>
       <b>XGB Prediction</b>
     </td>
   </tr>
