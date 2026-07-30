@@ -21,6 +21,7 @@ CANDIDATE_WHITELIST_PATH = OUTPUT_DIR / "yixing_candidates_whitelist.csv"
 TOTAL_SCORE_PATH = OUTPUT_DIR / "total_score.csv"
 XGB_SELECTED_PATH = OUTPUT_DIR / "yixing_selected_locations_xgb.csv"
 MLP_SELECTED_PATH = OUTPUT_DIR / "yixing_selected_locations_mlp.csv"
+SVR_SELECTED_PATH = OUTPUT_DIR / "yixing_selected_locations_svr.csv"
 
 CITY_NAME = "Yixing, Wuxi, Jiangsu, China"
 H3_RESOLUTION = 7
@@ -28,7 +29,7 @@ RANDOM_SEED = 277
 MAX_CANDIDATES = 2_000
 DEFAULT_MAX_CANDIDATES = None
 DEDUP_DISTANCE_THRESHOLD_M = 10.0
-OPTIMIZATION_DISTANCE_THRESHOLD_M = 20.0
+OPTIMIZATION_DISTANCE_THRESHOLD_M = 50.0
 WGS84_CRS = "EPSG:4326"
 PROJECTED_CRS = "EPSG:32650"
 AED_RANGE_KM = 1.21
@@ -51,11 +52,11 @@ CANDIDATE_FEATURE_GROUPS: dict[str, list[str]] = {
     "transportation": [
         "bus_station",
         "parking",
-        "parking_entrance",
         "charging_station",
         "fuel",
     ],
-    "public_services": ["marketplace", "bank", "post_office"],
+    # "public_services": ["marketplace", "bank", "post_office"],
+    "public_services": [ "bank", "post_office"],
     "culture_recreation_public": [
         "public",
         "sports_centre",

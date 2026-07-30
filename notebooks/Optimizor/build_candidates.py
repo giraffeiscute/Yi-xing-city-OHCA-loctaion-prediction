@@ -1,4 +1,4 @@
-﻿"""Build deduplicated whitelist candidates for the Yixing optimizer."""
+"""Build deduplicated whitelist candidates for the Yixing optimizer."""
 
 from __future__ import annotations
 

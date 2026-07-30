@@ -1,41 +1,45 @@
 # Yixing Candidate Scoring and Optimization
 
 This directory contains the Python-only Yixing AED candidate pipeline. The flow
-is split into independent steps so candidate filtering, total-score calculation,
-and optimization can be checked separately.
+is split into focused modules so candidate filtering, total-score calculation,
+and optimization can be checked separately. `run_this.py` is the main controller.
 
-`Data.py`, `ModelBuilder.py`, and `run_this.py` keep the existing optimization
-interface. New pipeline scripts prepare their inputs and call that interface.
+## Module Roles
 
-## Pipeline Steps
-
-1. Build whitelist candidates
-   - Script: `build_candidates.py`
+1. `build_candidates.py`
    - Input: `data/interim/mapped_data.csv`
    - Output: `outputs/yixing_candidates_whitelist.csv`
    - Behavior: keeps whitelist POI features, optionally filters inside the
      Yixing boundary, deduplicates within `10m`, and keeps all deduplicated
      candidates by default.
 
-2. Calculate total scores
-   - Script: `calculate_total_score.py`
+2. `calculate_total_score.py`
    - Input: `outputs/yixing_candidates_whitelist.csv`
    - Output: `outputs/total_score.csv`
    - Behavior: computes XGBoost, MLP, and SVR SHAP-derived scoring columns
      for every whitelist candidate.
 
-3. Optimize selected locations
-   - Existing script: `run_this.py`
+3. `build_conflict_pairs.py`
    - Input: `outputs/total_score.csv`
-   - XGB score column: `total_score_xgb`
-   - MLP score column: `total_score_mlp`
-   - Outputs: `outputs/yixing_selected_locations_xgb.csv` and
-     `outputs/yixing_selected_locations_mlp.csv`
+   - Output: `outputs/indicator_i_j_20m.npy` and `outputs/indicator_i_j_20m.json`
+   - Behavior: builds a DSS-style dense bool conflict matrix where `True`
+     means two candidates are within the optimization distance threshold.
 
-4. Full controller
-   - Script: `run_all.py`
-   - Behavior: runs candidate build, total-score calculation, then XGB and MLP
-     optimization.
+4. `Data.py` and `ModelBuilder.py`
+   - `Data.py` reads scored candidates, prepares score/coordinate arrays, and
+     loads a valid cached indicator matrix before falling back to live
+     distance-conflict pair calculation.
+   - `ModelBuilder.py` builds and solves the Gurobi binary IP.
+
+5. `run_this.py`
+   - Main controller for the full Yixing pipeline.
+   - Default behavior: build candidates, calculate total scores, then optimize
+     XGB, MLP, and SVR selected locations.
+   - `optimize` subcommand: run optimization only against an existing
+     `total_score.csv`.
+
+6. `yixing_optimizer_utils.py`
+   - Shared CSV, H3, and geometry helpers only.
 
 ## Candidate Whitelist
 
@@ -54,17 +58,14 @@ Outputs are written under `notebooks/Optimizor/outputs/`:
 - `yixing_candidate_feature_counts.csv`
 - `yixing_excluded_feature_counts.csv`
 - `total_score.csv`
+- `indicator_i_j_20m.npy`
+- `indicator_i_j_20m.json`
 - `yixing_selected_locations_xgb.csv`
 - `yixing_selected_locations_mlp.csv`
+- `yixing_selected_locations_svr.csv`
 
 The main scoring CSV contains Yixing candidate fields plus:
 
-- `h3_shap_score_xgb`
-- `h3_shap_score_mlp`
-- `h3_shap_score_svr`
-- `predicted_ohca_xgb`
-- `predicted_ohca_mlp`
-- `predicted_ohca_svr`
 - `total_score_xgb`
 - `total_score_mlp`
 - `total_score_svr`
@@ -72,45 +73,59 @@ The main scoring CSV contains Yixing candidate fields plus:
 - `score_rank_mlp`
 - `score_rank_svr`
 
+`total_score_xgb`, `total_score_mlp`, and `total_score_svr` keep their raw area-score scale. H3 SHAP components
+and model predictions are kept out of the main CSV.
+
 ## Run Commands
 
-Use the project environment:
+Use the project environment, for example:
 
 ```powershell
-$py = "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\Scripts\python.exe"
+conda run -n yixin_env python notebooks\Optimizor\run_this.py
 ```
 
-Build all whitelist candidates:
+Run the full pipeline, including all three optimization passes:
 
 ```powershell
-& $py notebooks\Optimizor\build_candidates.py
+conda run -n yixin_env python notebooks\Optimizor\run_this.py
+```
+
+Build whitelist candidates as an independent step:
+
+```powershell
+conda run -n yixin_env python notebooks\Optimizor\build_candidates.py
 ```
 
 Calculate total scores as an independent step:
 
 ```powershell
-& $py notebooks\Optimizor\calculate_total_score.py
+conda run -n yixin_env python notebooks\Optimizor\calculate_total_score.py
 ```
 
-Run the full pipeline, including both optimization passes:
+Build the cached 20m conflict indicator matrix as an independent step:
 
 ```powershell
-& $py notebooks\Optimizor\run_all.py
+conda run -n yixin_env python notebooks\Optimizor\build_conflict_pairs.py
 ```
 
-Run optimization only with the existing entrypoint:
+`run_this.py optimize` automatically looks for `indicator_i_j_<threshold>m.npy`
+next to the input `total_score.csv`. Use `--indicator-path` to override that
+file, or `--no-indicator-cache` to force live distance calculation.
+
+Run optimization only against an existing `total_score.csv`:
 
 ```powershell
-& $py notebooks\Optimizor\run_this.py --input notebooks\Optimizor\outputs\total_score.csv --score-col total_score_xgb --output notebooks\Optimizor\outputs\yixing_selected_locations_xgb.csv
-& $py notebooks\Optimizor\run_this.py --input notebooks\Optimizor\outputs\total_score.csv --score-col total_score_mlp --mlp --output notebooks\Optimizor\outputs\yixing_selected_locations_mlp.csv
+conda run -n yixin_env python notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --score-col total_score_xgb --output notebooks\Optimizor\outputs\yixing_selected_locations_xgb.csv
+conda run -n yixin_env python notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --mlp --output notebooks\Optimizor\outputs\yixing_selected_locations_mlp.csv
+conda run -n yixin_env python notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --svr --output notebooks\Optimizor\outputs\yixing_selected_locations_svr.csv
 ```
 
-Use `--max-candidates 2000` on `build_candidates.py` or `run_all.py` only when
+Use `--max-candidates 2000` on `build_candidates.py` or `run_this.py` only when
 you want the old sampled workflow. The default is all deduplicated whitelist
 candidates.
 
 ## Tests
 
 ```powershell
-& $py -m pytest tests\test_yixing_optimizer_utils.py notebooks\Optimizor\tests -o cache_dir=C:\tmp\pytest_cache_yixing_optimizer
+python -m pytest tests\test_yixing_optimizer_utils.py notebooks\Optimizor\tests -q -o cache_dir=C:\tmp\pytest_cache_yixing_optimizer
 ```

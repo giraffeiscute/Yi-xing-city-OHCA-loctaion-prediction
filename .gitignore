@@ -25,3 +25,5 @@ Thumbs.db
 data/raw/
 data/interim/
 *.csv
+*.npy
+*.json

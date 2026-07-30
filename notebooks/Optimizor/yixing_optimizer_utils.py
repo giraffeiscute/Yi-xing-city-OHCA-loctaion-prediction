@@ -1,4 +1,4 @@
-﻿"""Small shared helpers for the Yixing optimizer workflow."""
+"""Small shared helpers for the Yixing optimizer workflow."""
 
 from __future__ import annotations
 
