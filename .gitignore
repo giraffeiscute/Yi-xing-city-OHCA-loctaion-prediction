@@ -24,3 +24,4 @@ Thumbs.db
 # Local source and intermediate data
 data/raw/
 data/interim/
+*.csv
