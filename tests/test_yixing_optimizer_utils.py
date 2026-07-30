@@ -10,6 +10,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "notebooks" / "Optimizor"))
 import build_candidates as bc
 import calculate_total_score as cts
 import Data as data_module
+import yixing_optimizer_utils as yxu
 from config import MAX_CANDIDATES, OPTIMIZATION_DISTANCE_THRESHOLD_M, RANDOM_SEED
 
 
@@ -133,3 +134,10 @@ def test_distance_conflict_pairs_use_20m_threshold():
     )
 
     assert pairs == [(0, 1)]
+
+def test_scalar_haversine_distance_matches_vectorized_helper():
+    scalar_distance = yxu.haversine_distance_km(31.3, 119.8, 31.3, 119.8001)
+    array_distance = yxu.haversine_array(31.3, 119.8, [31.3], [119.8001])[0]
+
+    assert scalar_distance > 0
+    assert np.isclose(scalar_distance, array_distance)

@@ -13,6 +13,9 @@ import pandas as pd
 from config import H3_RESOLUTION, OUTPUT_DIR
 
 
+EARTH_RADIUS_KM = 6371.0
+
+
 def ensure_output_dir(output_dir: Path = OUTPUT_DIR) -> Path:
     """Create and return the Yixing output directory."""
 
@@ -82,6 +85,17 @@ def intersection_area(r1: float, r2: float, d: float) -> float:
     return term1 + term2 - term3
 
 
+def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return Haversine distance between two lat/lon points in kilometers."""
+
+    lat1_rad, lon1_rad, lat2_rad, lon2_rad = map(math.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+    return EARTH_RADIUS_KM * c
+
+
 def haversine_array(lat1: float, lon1: float, lat2_array: Iterable[float], lon2_array: Iterable[float]) -> np.ndarray:
     """Vectorized Haversine distance in kilometers."""
 
@@ -92,7 +106,7 @@ def haversine_array(lat1: float, lon1: float, lat2_array: Iterable[float], lon2_
     dlon = lon2 - lon1_rad
     a = np.sin(dlat / 2) ** 2 + np.cos(lat1_rad) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
-    return 6371.0 * c
+    return EARTH_RADIUS_KM * c
 
 
 def cache_h3_centers(df: pd.DataFrame, h3_col: str = "h3_l7") -> pd.DataFrame:

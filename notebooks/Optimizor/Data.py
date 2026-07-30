@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from config import OPTIMIZATION_DISTANCE_THRESHOLD_M, OUTPUT_DIR, PROJECTED_CRS, WGS84_CRS
-from yixing_optimizer_utils import read_csv_flexible
+from yixing_optimizer_utils import haversine_distance_km, read_csv_flexible
 
 
 def format_distance_threshold_m(threshold_m: float) -> str:
@@ -282,13 +281,6 @@ class Data(object):
         self._build_distance_indicator(cached_indicator=cached_indicator)
         return self
 
-    def haversine(self, lat1, lon1, lat2, lon2):
-        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-        d_lat = lat2 - lat1
-        d_lon = lon2 - lon1
-        a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(d_lon / 2) ** 2
-        c = 2 * math.asin(math.sqrt(a))
-        return c * 6371.0
 
     def has_distance_conflict(self, i, j):
         if self.infinite != 0:
@@ -315,7 +307,7 @@ class Data(object):
             self.indicator_cache_used = False
 
         for i, j in self.conflict_pairs:
-            distance_km = self.haversine(self.loc_lat[i], self.loc_lon[i], self.loc_lat[j], self.loc_lon[j])
+            distance_km = haversine_distance_km(self.loc_lat[i], self.loc_lon[i], self.loc_lat[j], self.loc_lon[j])
             self.dist_i_j[i, j] = distance_km
             self.dist_i_j[j, i] = distance_km
             self.indicator_i_j[i, j] = 1
