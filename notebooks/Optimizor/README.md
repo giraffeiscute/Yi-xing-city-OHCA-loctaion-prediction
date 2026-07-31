@@ -9,9 +9,7 @@ and optimization can be checked separately. `run_this.py` is the main controller
 1. `build_candidates.py`
    - Input: `data/interim/mapped_data.csv`
    - Output: `outputs/yixing_candidates_whitelist.csv`
-   - Behavior: keeps whitelist POI features, optionally filters inside the
-     Yixing boundary, deduplicates within `10m`, and keeps all deduplicated
-     candidates by default.
+   - Behavior: keeps POIs whose `osm_tag` is in `CANDIDATE_FEATURE_GROUPS`, uses WGS84 coordinates, deduplicates within `10m`, and writes every deduplicated whitelist candidate.
 
 2. `calculate_total_score.py`
    - Input: `outputs/yixing_candidates_whitelist.csv`
@@ -21,9 +19,9 @@ and optimization can be checked separately. `run_this.py` is the main controller
 
 3. `build_conflict_pairs.py`
    - Input: `outputs/total_score.csv`
-   - Output: `outputs/indicator_i_j_20m.npy` and `outputs/indicator_i_j_20m.json`
-   - Behavior: builds a DSS-style dense bool conflict matrix where `True`
-     means two candidates are within the optimization distance threshold.
+   - Output: `outputs/cache/conflict_pairs_50m.npy` and `outputs/cache/conflict_pairs_50m.json`
+   - Behavior: builds a sparse `(n_conflict_pairs, 2)` pair cache where each row
+     stores two candidates within the optimization distance threshold.
 
 4. `Data.py` and `ModelBuilder.py`
    - `Data.py` reads scored candidates, prepares score/coordinate arrays, and
@@ -45,8 +43,8 @@ and optimization can be checked separately. `run_this.py` is the main controller
 
 - `healthcare`: `hospital`, `clinic`, `pharmacy`, `dentist`
 - `education`: `school`, `kindergarten`, `university`, `college`, `training`, `library`
-- `transportation`: `bus_station`, `parking`, `parking_entrance`, `charging_station`, `fuel`
-- `public_services`: `marketplace`, `bank`, `post_office`
+- `transportation`: `bus_station`, `parking`, `charging_station`, `fuel`
+- `public_services`: `bank`, `post_office`
 - `culture_recreation_public`: `public`, `sports_centre`, `cinema`, `theatre`, `arts_centre`, `exhibition_centre`
 
 ## Main Outputs
@@ -58,11 +56,15 @@ Outputs are written under `notebooks/Optimizor/outputs/`:
 - `yixing_candidate_feature_counts.csv`
 - `yixing_excluded_feature_counts.csv`
 - `total_score.csv`
-- `indicator_i_j_20m.npy`
-- `indicator_i_j_20m.json`
+- `cache/conflict_pairs_50m.npy`
+- `cache/conflict_pairs_50m.json`
 - `yixing_selected_locations_xgb.csv`
 - `yixing_selected_locations_mlp.csv`
 - `yixing_selected_locations_svr.csv`
+- `samples/candidate_sample_2000x10_seed277.npy`
+- `samples/candidate_sample_2000x10_seed277.json`
+- `runs/sampled_2000x10_seed277_d50m_loc5/yixing_sampled_optimization_summary.csv`
+- `runs/sampled_2000x10_seed277_d50m_loc5/selected/yixing_selected_locations_<model>_sampleNN.csv`
 
 The main scoring CSV contains Yixing candidate fields plus:
 
@@ -78,54 +80,59 @@ and model predictions are kept out of the main CSV.
 
 ## Run Commands
 
-Use the project environment, for example:
+Use the project environment directly:
 
 ```powershell
-conda run -n yixin_env python notebooks\Optimizor\run_this.py
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\run_this.py
 ```
 
 Run the full pipeline, including all three optimization passes:
 
 ```powershell
-conda run -n yixin_env python notebooks\Optimizor\run_this.py
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\run_this.py
 ```
 
 Build whitelist candidates as an independent step:
 
 ```powershell
-conda run -n yixin_env python notebooks\Optimizor\build_candidates.py
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\build_candidates.py
 ```
 
 Calculate total scores as an independent step:
 
 ```powershell
-conda run -n yixin_env python notebooks\Optimizor\calculate_total_score.py
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\calculate_total_score.py
 ```
 
-Build the cached 20m conflict indicator matrix as an independent step:
+Build the cached 50m sparse conflict-pair file as an independent step. The default output is `outputs/cache/conflict_pairs_50m.npy`:
 
 ```powershell
-conda run -n yixin_env python notebooks\Optimizor\build_conflict_pairs.py
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\build_conflict_pairs.py
 ```
 
-`run_this.py optimize` automatically looks for `indicator_i_j_<threshold>m.npy`
-next to the input `total_score.csv`. Use `--indicator-path` to override that
-file, or `--no-indicator-cache` to force live distance calculation.
+`run_this.py optimize --sample-size ...` automatically looks for `cache/conflict_pairs_<threshold>m.npy` under `--output-dir`, builds it once if missing, and filters it for each sample. Sample matrices go under `samples/`; selected CSVs and summary go under `runs/sampled_<size>x<count>_seed<seed>_d<threshold>_loc<loc_num>/`. Use `--sample-path`, `--conflict-pairs-path`, or `--run-dir` to override those defaults. Non-sampled optimization can still use the dense `cache/indicator_i_j_<threshold>m.npy` cache via `--indicator-path`.
 
 Run optimization only against an existing `total_score.csv`:
 
 ```powershell
-conda run -n yixin_env python notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --score-col total_score_xgb --output notebooks\Optimizor\outputs\yixing_selected_locations_xgb.csv
-conda run -n yixin_env python notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --mlp --output notebooks\Optimizor\outputs\yixing_selected_locations_mlp.csv
-conda run -n yixin_env python notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --svr --output notebooks\Optimizor\outputs\yixing_selected_locations_svr.csv
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --score-col total_score_xgb --output notebooks\Optimizor\outputs\yixing_selected_locations_xgb.csv
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --mlp --output notebooks\Optimizor\outputs\yixing_selected_locations_mlp.csv
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --svr --output notebooks\Optimizor\outputs\yixing_selected_locations_svr.csv
 ```
 
-Use `--max-candidates 2000` on `build_candidates.py` or `run_this.py` only when
-you want the old sampled workflow. The default is all deduplicated whitelist
-candidates.
+Run 10 sampled optimization batches at the default 50m spacing. Each sample has 2000 unique candidates; candidates may repeat across different sample groups:
+
+```powershell
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\python.exe" notebooks\Optimizor\run_this.py optimize --input notebooks\Optimizor\outputs\total_score.csv --distance-threshold-m 50 --sample-size 2000 --sample-count 10 --sample-seed 277
+```
+
+This writes `samples/candidate_sample_2000x10_seed277.npy`, matching JSON metadata, `cache/conflict_pairs_50m.npy`, matching conflict-pair metadata, one selected-location CSV per sample/model under the run folder, and `yixing_sampled_optimization_summary.csv` in that same run folder.
+
+Candidate generation does not choose a fixed K. Every POI whose `osm_tag` is in the whitelist is kept after coordinate cleaning and 10m deduplication. `run_this.py --loc-num K` only controls the final optimization stage.
 
 ## Tests
 
 ```powershell
-python -m pytest tests\test_yixing_optimizer_utils.py notebooks\Optimizor\tests -q -o cache_dir=C:\tmp\pytest_cache_yixing_optimizer
+& "C:\Users\Yuan\Desktop\YUAN\OHCA 宜興市\yixin_env\Scripts\python.exe" -m pytest tests\test_yixing_optimizer_utils.py notebooks\Optimizor\tests -q -p no:cacheprovider
 ```
+

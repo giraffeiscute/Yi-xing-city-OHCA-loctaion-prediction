@@ -358,17 +358,74 @@ def attach_candidate_component_scores(
     *,
     score_col: str = "component_score",
 ) -> pd.DataFrame:
-    """Join per-H3/per-feature component scores to candidate rows."""
+    """Attach summed POI/building-level SHAP component scores to candidates."""
 
-    long_score = h3_feature_score_df.melt(id_vars="id", var_name="primary_feature", value_name=score_col)
-    out = candidates.merge(
+    if "h3_l7" not in candidates.columns:
+        raise KeyError("candidates must include an h3_l7 column.")
+    if "id" not in h3_feature_score_df.columns:
+        raise ValueError("h3_feature_score_df must include an id column.")
+
+    feature_cols = [feature for feature in FEATURE_PRIORITY if feature in h3_feature_score_df.columns]
+    out = candidates.copy()
+    if not feature_cols:
+        out[score_col] = 0.0
+        return out
+
+    row_id_col = "__candidate_score_row_id"
+    while row_id_col in out.columns:
+        row_id_col = "_" + row_id_col
+    out[row_id_col] = np.arange(len(out))
+
+    feature_set = set(feature_cols)
+    records: list[dict[str, object]] = []
+    for _, row in out.iterrows():
+        features = _candidate_score_features(row, feature_set)
+        if not features:
+            continue
+        h3_id = row["h3_l7"]
+        if pd.isna(h3_id):
+            continue
+        for feature in features:
+            records.append(
+                {
+                    row_id_col: row[row_id_col],
+                    "h3_l7": str(h3_id),
+                    "feature": feature,
+                }
+            )
+
+    if not records:
+        out[score_col] = 0.0
+        return out.drop(columns=[row_id_col])
+
+    point_features = pd.DataFrame(records)
+    long_score = h3_feature_score_df.melt(
+        id_vars="id",
+        value_vars=feature_cols,
+        var_name="feature",
+        value_name=score_col,
+    )
+    long_score["id"] = long_score["id"].astype(str)
+    merged = point_features.merge(
         long_score,
         how="left",
-        left_on=["h3_l7", "primary_feature"],
-        right_on=["id", "primary_feature"],
-        suffixes=("", "_score_h3"),
+        left_on=["h3_l7", "feature"],
+        right_on=["id", "feature"],
     )
-    return out.drop(columns=["id_score_h3"], errors="ignore")
+    merged[score_col] = pd.to_numeric(merged[score_col], errors="coerce").fillna(0.0)
+    totals = merged.groupby(row_id_col, sort=False)[score_col].sum()
+    out[score_col] = out[row_id_col].map(totals).fillna(0.0).astype(float)
+    return out.drop(columns=[row_id_col])
+
+
+def _candidate_score_features(row: pd.Series, available_features: set[str]) -> list[str]:
+    tag = row.get("osm_tag")
+    if tag is None or pd.isna(tag):
+        return []
+    tag = str(tag).strip().lower()
+    if tag in available_features:
+        return [tag]
+    return []
 
 
 def area_score_from_points(
@@ -408,6 +465,8 @@ def compute_total_scores(
     *,
     point_score_col: str = "component_score",
     total_score_col: str = "total_score",
+    rank_col: str | None = "score_rank",
+    sort: bool = True,
     show_progress: bool = False,
     progress_desc: str = "Calculating total scores",
 ) -> pd.DataFrame:
@@ -423,8 +482,13 @@ def compute_total_scores(
     ]
     out = score_points.copy()
     out[total_score_col] = totals
-    out["score_rank"] = out[total_score_col].rank(method="first", ascending=False).astype(int)
-    return out.sort_values(total_score_col, ascending=False).reset_index(drop=True)
+    if rank_col is not None:
+        if rank_col in out.columns:
+            out = out.drop(columns=[rank_col])
+        out[rank_col] = out[total_score_col].rank(method="first", ascending=False).astype(int)
+    if sort:
+        return out.sort_values(total_score_col, ascending=False).reset_index(drop=True)
+    return out.reset_index(drop=True)
 
 
 def compute_h3_prediction_area_scores(
@@ -486,6 +550,10 @@ def add_h3_frames(candidates: pd.DataFrame, *h3_frames: pd.DataFrame) -> pd.Data
 
 
 
+TOTAL_SCORE_COLUMNS = ["total_score_xgb", "total_score_mlp", "total_score_svr"]
+SCORE_RANK_COLUMNS = ["score_rank_xgb", "score_rank_mlp", "score_rank_svr"]
+
+
 def add_score_ranks(scored: pd.DataFrame) -> pd.DataFrame:
     """Attach total-score ranks kept in total_score.csv."""
 
@@ -495,12 +563,18 @@ def add_score_ranks(scored: pd.DataFrame) -> pd.DataFrame:
         rank_col = f"score_rank_{model_name}"
         if total_score_col not in out.columns:
             continue
-        rank_values = out[total_score_col].rank(method="first", ascending=False).astype(int)
         if rank_col in out.columns:
             out = out.drop(columns=[rank_col])
-        insert_at = out.columns.get_loc(total_score_col) + 1
-        out.insert(insert_at, rank_col, rank_values)
-    return out
+        out[rank_col] = out[total_score_col].rank(method="first", ascending=False).astype(int)
+    return order_total_score_columns(out)
+
+
+def order_total_score_columns(scored: pd.DataFrame) -> pd.DataFrame:
+    """Keep score columns together before trailing rank columns."""
+
+    trailing = [column for column in TOTAL_SCORE_COLUMNS + SCORE_RANK_COLUMNS if column in scored.columns]
+    leading = [column for column in scored.columns if column not in trailing]
+    return scored.loc[:, leading + trailing]
 
 
 def write_total_score_csv(scored: pd.DataFrame, output_path: Path = TOTAL_SCORE_PATH) -> Path:
@@ -508,7 +582,7 @@ def write_total_score_csv(scored: pd.DataFrame, output_path: Path = TOTAL_SCORE_
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    scored.to_csv(output_path, index=False, encoding="utf-8-sig")
+    order_total_score_columns(scored).to_csv(output_path, index=False, encoding="utf-8-sig")
     return output_path
 
 
@@ -558,18 +632,24 @@ def calculate_total_scores(
             yixing_h3_df,
             feature_cols,
         )
-        xgb_h3_score_df = aggregate_h3_feature_scores(xgb_h3_feature_df, score_col="h3_shap_score_xgb")
-        progress.set_postfix_str("XGB H3 SHAP scores ready")
+        progress.set_postfix_str("XGB H3 feature SHAP scores ready")
         progress.update()
 
-        scored = compute_h3_prediction_area_scores(
+        scored = attach_candidate_component_scores(
             candidates,
-            xgb_h3_score_df,
-            prediction_col="h3_shap_score_xgb",
+            xgb_h3_feature_df,
+            score_col="point_shap_score_xgb",
+        )
+        scored = compute_total_scores(
+            scored,
+            point_score_col="point_shap_score_xgb",
             total_score_col="total_score_xgb",
+            rank_col=None,
+            sort=False,
             show_progress=True,
             progress_desc="Calculating total_score_xgb",
         )
+        scored = scored.drop(columns=["point_shap_score_xgb", "center_lat", "center_lon"], errors="ignore")
         progress.set_postfix_str("total_score_xgb ready")
         progress.update()
 
@@ -579,18 +659,24 @@ def calculate_total_scores(
             feature_cols,
             iter_num=mlp_iter_num,
         )
-        mlp_h3_score_df = aggregate_h3_feature_scores(mlp_h3_feature_df, score_col="h3_shap_score_mlp")
-        progress.set_postfix_str("MLP H3 SHAP scores ready")
+        progress.set_postfix_str("MLP H3 feature SHAP scores ready")
         progress.update()
 
-        scored = compute_h3_prediction_area_scores(
+        scored = attach_candidate_component_scores(
             scored,
-            mlp_h3_score_df,
-            prediction_col="h3_shap_score_mlp",
+            mlp_h3_feature_df,
+            score_col="point_shap_score_mlp",
+        )
+        scored = compute_total_scores(
+            scored,
+            point_score_col="point_shap_score_mlp",
             total_score_col="total_score_mlp",
+            rank_col=None,
+            sort=False,
             show_progress=True,
             progress_desc="Calculating total_score_mlp",
         )
+        scored = scored.drop(columns=["point_shap_score_mlp", "center_lat", "center_lon"], errors="ignore")
         progress.set_postfix_str("total_score_mlp ready")
         progress.update()
 
@@ -599,18 +685,24 @@ def calculate_total_scores(
             yixing_h3_df,
             feature_cols,
         )
-        svr_h3_score_df = aggregate_h3_feature_scores(svr_h3_feature_df, score_col="h3_shap_score_svr")
-        progress.set_postfix_str("SVR H3 SHAP scores ready")
+        progress.set_postfix_str("SVR H3 feature SHAP scores ready")
         progress.update()
 
-        scored = compute_h3_prediction_area_scores(
+        scored = attach_candidate_component_scores(
             scored,
-            svr_h3_score_df,
-            prediction_col="h3_shap_score_svr",
+            svr_h3_feature_df,
+            score_col="point_shap_score_svr",
+        )
+        scored = compute_total_scores(
+            scored,
+            point_score_col="point_shap_score_svr",
             total_score_col="total_score_svr",
+            rank_col=None,
+            sort=False,
             show_progress=True,
             progress_desc="Calculating total_score_svr",
         )
+        scored = scored.drop(columns=["point_shap_score_svr", "center_lat", "center_lon"], errors="ignore")
         progress.set_postfix_str("total_score_svr ready")
         progress.update()
 
@@ -672,3 +764,5 @@ def main(argv: list[str] | None = None) -> TotalScoreResult:
 
 if __name__ == "__main__":
     main()
+
+

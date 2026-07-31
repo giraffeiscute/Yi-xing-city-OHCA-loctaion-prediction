@@ -1,4 +1,4 @@
-"""Shared configuration for the Yixing optimizer Python pipeline.
+﻿"""Shared configuration for the Yixing optimizer Python pipeline.
 
 The values here are intentionally plain module constants so every step script
 can be run independently without importing notebook state.
@@ -23,11 +23,8 @@ XGB_SELECTED_PATH = OUTPUT_DIR / "yixing_selected_locations_xgb.csv"
 MLP_SELECTED_PATH = OUTPUT_DIR / "yixing_selected_locations_mlp.csv"
 SVR_SELECTED_PATH = OUTPUT_DIR / "yixing_selected_locations_svr.csv"
 
-CITY_NAME = "Yixing, Wuxi, Jiangsu, China"
 H3_RESOLUTION = 7
 RANDOM_SEED = 277
-MAX_CANDIDATES = 2_000
-DEFAULT_MAX_CANDIDATES = None
 DEDUP_DISTANCE_THRESHOLD_M = 10.0
 OPTIMIZATION_DISTANCE_THRESHOLD_M = 50.0
 WGS84_CRS = "EPSG:4326"
@@ -35,8 +32,8 @@ PROJECTED_CRS = "EPSG:32650"
 AED_RANGE_KM = 1.21
 H3_CENTER_RADIUS_KM = 1.21
 MLP_ITER_NUM = 5_000
-DEFAULT_LOC_NUM = 5
-DEFAULT_OPTIMIZATION_TIME_LIMIT_SECONDS = 600
+DEFAULT_LOC_NUM = 1300
+DEFAULT_OPTIMIZATION_TIME_LIMIT_SECONDS = 2400
 
 # Candidate groups are whitelist categories used before scoring.
 CANDIDATE_FEATURE_GROUPS: dict[str, list[str]] = {
@@ -55,8 +52,7 @@ CANDIDATE_FEATURE_GROUPS: dict[str, list[str]] = {
         "charging_station",
         "fuel",
     ],
-    # "public_services": ["marketplace", "bank", "post_office"],
-    "public_services": [ "bank", "post_office"],
+    "public_services": ["bank", "post_office"],
     "culture_recreation_public": [
         "public",
         "sports_centre",
@@ -67,14 +63,4 @@ CANDIDATE_FEATURE_GROUPS: dict[str, list[str]] = {
     ],
 }
 
-FEATURE_SOURCE_COLUMNS = (
-    "osm_tag",
-    "amenity",
-    "shop",
-    "healthcare",
-    "leisure",
-    "tourism",
-    "office",
-    "landuse",
-    "building",
-)
+
