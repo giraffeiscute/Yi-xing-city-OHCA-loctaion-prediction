@@ -27,3 +27,4 @@ data/interim/
 *.csv
 *.npy
 *.json
+notebooks/visualize_aed_deployment_maps.ipynb
