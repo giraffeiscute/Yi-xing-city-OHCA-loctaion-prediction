@@ -16,6 +16,7 @@ import build_candidates as bc
 import calculate_total_score as cts
 import build_conflict_pairs as conflict_module
 import Data as data_module
+import ModelBuilder as model_builder_module
 import run_this
 import yixing_optimizer_utils as yxu
 
@@ -323,6 +324,68 @@ def test_data_read_dataframe_falls_back_when_indicator_cache_missing(monkeypatch
     assert data.conflict_pairs == [(0, 1)]
     assert calls == [(3, 20.0, conflict_module.PROJECTED_CRS)]
 
+
+def test_model_builder_requires_exact_location_count(monkeypatch):
+    class FakeGRB:
+        BINARY = "BINARY"
+        MAXIMIZE = "MAXIMIZE"
+
+    class FakeVar:
+        X = 1.0
+
+    class FakeLinExpr:
+        def __init__(self):
+            self.terms = []
+
+        def addTerms(self, coeff, var):
+            self.terms.append((coeff, var))
+
+        def __eq__(self, other):
+            return ("eq", other, len(self.terms))
+
+        def __le__(self, other):
+            return ("le", other, len(self.terms))
+
+    class FakeModel:
+        instances = []
+
+        def __init__(self, name):
+            self.name = name
+            self.constraints = []
+            self.SolCount = 1
+            self.ObjVal = 0.0
+            self.Runtime = 0.0
+            FakeModel.instances.append(self)
+
+        def addVar(self, **kwargs):
+            return FakeVar()
+
+        def setObjective(self, *args, **kwargs):
+            pass
+
+        def addConstr(self, constraint, name):
+            self.constraints.append((name, constraint))
+            return constraint
+
+        def setParam(self, *args, **kwargs):
+            pass
+
+        def optimize(self):
+            pass
+
+    fake_gurobi = SimpleNamespace(GRB=FakeGRB, Model=FakeModel, LinExpr=FakeLinExpr)
+    monkeypatch.setitem(sys.modules, "gurobipy", fake_gurobi)
+    data = SimpleNamespace(
+        build_num=3,
+        loc_num=2,
+        loc_score=np.array([1.0, 2.0, 3.0]),
+        conflict_pairs=[],
+    )
+
+    model_builder_module.ModelBuilder().build_IP(data, candidate_loc_id=range(3), loc_num=2)
+
+    cons_sum = [constraint for name, constraint in FakeModel.instances[-1].constraints if name == "cons_sum"]
+    assert cons_sum == [("eq", 2, 3)]
 
 def test_run_this_optimization_uses_xgb_mlp_and_svr_score_columns(monkeypatch):
     calls = []

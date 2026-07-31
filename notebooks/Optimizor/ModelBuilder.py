@@ -107,14 +107,17 @@ class ModelBuilder(object):
                     name="cons_dist_" + str(i) + "_" + str(j),
                 )
 
-        self.cons_sum = model.addConstr(lhs <= loc_num, name="cons_sum")
+        self.cons_sum = model.addConstr(lhs == loc_num, name="cons_sum")
         model.setParam("OutputFlag", output_flag)
         model.setParam("Presolve", 1)
         model.setParam("TimeLimit", time_limit_seconds)
         model.optimize()
 
         if model.SolCount == 0:
-            raise RuntimeError("Gurobi did not produce a feasible solution.")
+            raise RuntimeError(
+                "Gurobi did not produce a feasible solution. "
+                f"Exactly {loc_num} locations may be impossible under the distance constraints."
+            )
 
         decisions = [loc_id for loc_id in loc_ids if x_vars[loc_id].X >= 0.5]
         setattr(self, model_name, model)
