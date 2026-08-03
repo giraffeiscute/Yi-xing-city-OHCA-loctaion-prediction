@@ -11,6 +11,24 @@ venv/
 # Runtime/download caches
 cache/
 
+# Generated output images
+**/output/**/*.png
+**/output/**/*.jpg
+**/output/**/*.jpeg
+**/output/**/*.gif
+**/output/**/*.webp
+**/output/**/*.bmp
+**/output/**/*.tif
+**/output/**/*.tiff
+**/outputs/**/*.png
+**/outputs/**/*.jpg
+**/outputs/**/*.jpeg
+**/outputs/**/*.gif
+**/outputs/**/*.webp
+**/outputs/**/*.bmp
+**/outputs/**/*.tif
+**/outputs/**/*.tiff
+
 # Local environments and secrets
 .env
 .env.*
